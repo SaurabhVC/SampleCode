@@ -1,0 +1,191 @@
+*&---------------------------------------------------------------------*
+*& Report  ZTEST_1284_3
+*&
+*&---------------------------------------------------------------------*
+*&
+*&
+*&---------------------------------------------------------------------*
+REPORT ZTEST_1284_3.
+
+*type pools for alv declarations
+TYPE-POOLS: slis.
+*structure declaration for tstc table
+TYPES : BEGIN OF ty_tstc,
+        tcode TYPE tcode,
+        pgmna TYPE program_id,
+        dypno TYPE dynpronr,
+        END OF ty_tstc.
+
+* Internal table and workarea declarations for tstc
+DATA: it_tstc TYPE STANDARD TABLE OF ty_tstc,
+      wa_tstc TYPE ty_tstc.
+*data declarations for ALV
+DATA: it_layout TYPE slis_layout_alv,
+      wa_fieldcat TYPE slis_fieldcat_alv,
+      it_fieldcat TYPE slis_t_fieldcat_alv,
+      it_eventexit TYPE slis_t_event_exit,
+      wa_eventexit TYPE slis_event_exit.
+*initialisation event
+
+*INITIALIZATION.
+**start of selection event
+START-OF-SELECTION.
+*subroutine to fetch data from the db table
+  PERFORM fetch_data.
+*subroutine for output display
+  PERFORM alv_output.
+*&---------------------------------------------------------------------*
+*&      Form  fetch_data
+*&---------------------------------------------------------------------*
+*       *subroutine to fetch data from the db table
+*----------------------------------------------------------------------*
+FORM fetch_data.
+*Internal table and work area declaratin for TSTC (local tables)
+  DATA : lt_tstc TYPE STANDARD TABLE OF ty_tstc,
+         ls_tstc TYPE ty_tstc.
+*Static field definition
+*Reads the last tcode and stores it in l_tstc that on refresh further data
+*beyond this value is fetched
+  STATICS l_tstc TYPE tcode.
+* Selection from the tstc table
+*we select till 25 rows and on further refresh next 25 are selected
+*we select transactions having screen numbers only
+  SELECT tcode
+         pgmna
+         dypno
+         FROM tstc
+         INTO CORRESPONDING FIELDS OF TABLE lt_tstc
+         UP TO 25 ROWS
+         WHERE tcode GT l_tstc
+         AND dypno NE '0000'.
+* Code for transferring the values of local table to output table
+* for 25 rows as sy-tfill is 25.
+*In case there are no records a message pops up.
+  IF sy-subrc EQ 0.
+    DESCRIBE TABLE it_tstc.
+    READ TABLE lt_tstc INTO ls_tstc INDEX sy-tfill.
+    l_tstc = ls_tstc-tcode.
+    it_tstc[] = lt_tstc[].
+  ELSE.
+    MESSAGE 'No Records found ' TYPE 'i'.
+  ENDIF.
+ENDFORM.                    "read_data
+*&---------------------------------------------------------------------*
+*&      Form  alv_output
+*&---------------------------------------------------------------------*
+*       text
+*----------------------------------------------------------------------*
+FORM alv_output.
+*subroutine to refresh alv
+  PERFORM event_exits.
+*field catalogue
+  PERFORM build_fieldcat.
+*Layout for alv
+  PERFORM build_layout.
+*output display
+  PERFORM alv_display.
+ENDFORM.                    "alv_output
+*&---------------------------------------------------------------------*
+*&      Form  event_exits
+*&---------------------------------------------------------------------*
+*       text
+*----------------------------------------------------------------------*
+*subroutine to refresh alv
+FORM event_exits.
+  CLEAR wa_eventexit.
+  wa_eventexit-ucomm = '&REFRESH'.    " Refresh
+  wa_eventexit-after = 'X'.
+  APPEND wa_eventexit TO it_eventexit.
+ENDFORM.                     "event_exits
+*&---------------------------------------------------------------------*
+*&      Form  build_fieldcat
+*&---------------------------------------------------------------------*
+*       text
+*----------------------------------------------------------------------*
+*Field catalogue
+FORM build_fieldcat.
+  CLEAR wa_fieldcat.
+  wa_fieldcat-row_pos   = '1'.
+  wa_fieldcat-col_pos   = '1'.
+  wa_fieldcat-fieldname = 'TCODE'.
+  wa_fieldcat-tabname   = 'it_tstc'.
+  wa_fieldcat-seltext_m = 'TRANSACTION'.
+  APPEND wa_fieldcat TO it_fieldcat.
+  CLEAR wa_fieldcat.
+  wa_fieldcat-row_pos   = '1'.
+  wa_fieldcat-col_pos   = '2'.
+  wa_fieldcat-fieldname = 'PGMNA'.
+  wa_fieldcat-tabname   = 'it_tstc'.
+  wa_fieldcat-seltext_m = 'PROGRAM'.
+  APPEND wa_fieldcat TO it_fieldcat.
+  CLEAR wa_fieldcat.
+  wa_fieldcat-row_pos   = '1'.
+  wa_fieldcat-col_pos   = '3'.
+  wa_fieldcat-fieldname = 'DYPNO'.
+  wa_fieldcat-tabname   = 'it_tstc'.
+  wa_fieldcat-seltext_m = 'SCREEN'.
+  APPEND wa_fieldcat TO it_fieldcat.
+ENDFORM.                     "build_fieldcat
+*&---------------------------------------------------------------------*
+*&      Form  build_layout
+*&---------------------------------------------------------------------*
+*       text
+*----------------------------------------------------------------------*
+*Layout
+FORM build_layout.
+  it_layout-zebra = 'X'.
+  it_layout-colwidth_optimize = 'X'.
+ENDFORM.                     "build_layout
+*&---------------------------------------------------------------------*
+*&      Form  alv_display
+*&---------------------------------------------------------------------*
+*       text
+*----------------------------------------------------------------------*
+*ALV output
+FORM alv_display.
+  CALL FUNCTION 'REUSE_ALV_GRID_DISPLAY'
+    EXPORTING
+      i_callback_program       = sy-repid
+      i_callback_user_command  = 'USER_COMMAND'
+      i_callback_pf_status_set = 'PFSTATUS'
+      it_fieldcat              = it_fieldcat
+      is_layout                = it_layout
+      it_event_exit            = it_eventexit
+      i_screen_start_column    = 10
+      i_screen_start_line      = 20
+      i_screen_end_column      = 70
+      i_screen_end_line        = 45
+      i_grid_title             = 'Call Tcode Refresh ALV'
+    TABLES
+      t_outtab                 = it_tstc.
+ENDFORM.                    "alv_display
+*&---------------------------------------------------------------------*
+*&      Form  user_command
+*&---------------------------------------------------------------------*
+*       text
+*----------------------------------------------------------------------*
+*User actions on ALV
+FORM user_command USING r_ucomm TYPE sy-ucomm
+                        rs_selfield TYPE slis_selfield.
+  CASE r_ucomm.
+*User clicks a transaction code and that tcode is called from ALV
+    WHEN '&IC1'.
+      READ TABLE it_tstc INDEX rs_selfield-tabindex INTO wa_tstc.
+      IF sy-subrc = 0.
+        CALL TRANSACTION wa_tstc-tcode.
+      ENDIF.
+*user clicks the refresh button and the next 25 records are displayed
+    WHEN '&REFRESH'.
+      PERFORM fetch_data.
+      rs_selfield-refresh    = 'X'.
+      rs_selfield-col_stable = 'X' .
+      rs_selfield-row_stable = 'X' .
+  ENDCASE.
+ENDFORM.                    "user_command
+*---------------------------------------------------------------------*
+*       FORM PFSTATUS                                            *
+*---------------------------------------------------------------------*
+*Form for settings the pf status to the alv
+FORM pfstatus USING ut_extab TYPE slis_t_extab.
+  SET PF-STATUS 'STANDARD_FULLSCREEN' OF PROGRAM 'SAPLKKBL'.
+ENDFORM.                               " PF_STATUS_SET
