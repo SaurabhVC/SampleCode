@@ -1,0 +1,44 @@
+*&---------------------------------------------------------------------*
+*& Report ZTEST_SOLIX_PDF
+*&---------------------------------------------------------------------*
+*&
+*&---------------------------------------------------------------------*
+REPORT ZTEST_SOLIX_PDF.
+
+TYPES :
+ BEGIN OF lty_one,
+  guid type CRMT_OBJECT_GUID,
+  OBJECT_ID type CRMT_OBJECT_ID_DB,
+  PROCESS_TYPE type CRMT_PROCESS_TYPE_DB,
+END OF lty_one.
+
+TYPES :
+ BEGIN OF lty_two,
+  guid type CRMT_OBJECT_GUID,
+  OBJECT_ID type CRMT_OBJECT_ID_DB,
+END OF lty_two.
+
+DATA :
+      wa_one TYPE lty_one,
+       it_one TYPE TABLE OF lty_one,
+      wa_two TYPE lty_two,
+       it_two TYPE TABLE OF lty_two.
+
+SELECT
+  guid
+  object_id
+  process_type
+  FROM
+  CRMD_ORDERADM_H
+  INTO TABLE it_one
+  UP TO 10 ROWS.
+
+  LOOP AT it_one INTO wa_one.
+      WRITE : wa_one-guid , wa_one-object_id, wa_one-process_type .
+      hide wa_one-guid.
+*      (stores current selection)
+      NEW-LINE.
+  ENDLOOP.
+
+  at LINE-SELECTION.
+   WRITE wa_one-guid.
