@@ -1,0 +1,70 @@
+REPORT ZTEST_1284_1.
+
+load-OF-PROGRAM.
+DATA : a TYPE char10 VALUE '00000001'.
+
+INITIALIZATION.
+DATA : b TYPE matnr VALUE '00000002'.
+
+DATA: BEGIN OF IT_FINAL OCCURS 0,
+      matnr TYPE matnr,
+      END OF IT_FINAL.
+
+DATA: IT_RETURN LIKE DDSHRETVAL OCCURS 0 WITH HEADER LINE.
+
+PARAMETERS : matnr TYPE char10.
+PARAMETERS : matnr1 TYPE matnr.
+
+AT SELECTION-SCREEN OUTPUT.
+  LOOP AT SCREEN.
+
+    if screen-name = 'MATNR'.
+      matnr = a.
+    endif.
+
+    IF screen-name = 'MATNR1'.
+      screen-active = 0 .
+    ENDIF.
+
+    MODIFY SCREEN.
+    CONTINUE.
+  endloop.
+
+AT SELECTION-SCREEN.
+  IF MATNR NE A.
+    MESSAGE 'INPUT CHANGED' TYPE 'E'.
+  ENDIF.
+
+AT SELECTION-SCREEN ON VALUE-REQUEST FOR matnr .
+select matnr
+  FROM mara
+  into TABLE IT_FINAL
+  UP TO 20 ROWS.
+
+  CALL FUNCTION 'F4IF_INT_TABLE_VALUE_REQUEST'
+    EXPORTING
+      RETFIELD               = 'MATNR'
+      VALUE_ORG              = 'S'
+    TABLES
+      VALUE_TAB              = IT_FINAL
+            .
+
+AT SELECTION-SCREEN ON HELP-REQUEST FOR MATNR1.
+
+CALL FUNCTION 'DSYS_SHOW_FOR_F1HELP'
+  EXPORTING
+    DOKCLASS                 = 'TX'
+   DOKLANGU                  = SY-LANGU
+    DOKNAME                  = 'ZTEST_TEXT'
+          .
+
+
+START-OF-SELECTION.
+
+*logic related to fetching data from database.
+
+WRITE : 'hahaha'.
+
+end-of-SELECTION.
+
+* logic related to summrizing data after db work is complete
