@@ -1,11 +1,8 @@
 REPORT ZTEST_1284_1.
 
-*BREAK-POINT.
-* A> LOAD OF PROGRAM
 load-OF-PROGRAM.
 DATA : a TYPE char10 VALUE '00000001'.
 
-*B> INITIALIZATION
 INITIALIZATION.
 DATA : b TYPE matnr VALUE '00000002'.
 
@@ -35,12 +32,10 @@ AT SELECTION-SCREEN OUTPUT.
 
 AT SELECTION-SCREEN.
   IF MATNR NE A.
-    MESSAGE 'INPUT CHANGED' TYPE 'I'.
-    EXIT.
+    MESSAGE 'INPUT CHANGED' TYPE 'E'.
   ENDIF.
 
 AT SELECTION-SCREEN ON VALUE-REQUEST FOR matnr .
-
 select matnr
   FROM mara
   into TABLE IT_FINAL
@@ -48,8 +43,28 @@ select matnr
 
   CALL FUNCTION 'F4IF_INT_TABLE_VALUE_REQUEST'
     EXPORTING
-      RETFIELD               = 'matnr'
+      RETFIELD               = 'MATNR'
       VALUE_ORG              = 'S'
     TABLES
       VALUE_TAB              = IT_FINAL
-.
+            .
+
+AT SELECTION-SCREEN ON HELP-REQUEST FOR MATNR1.
+
+CALL FUNCTION 'DSYS_SHOW_FOR_F1HELP'
+  EXPORTING
+    DOKCLASS                 = 'TX'
+   DOKLANGU                  = SY-LANGU
+    DOKNAME                  = 'ZTEST_TEXT'
+          .
+
+
+START-OF-SELECTION.
+
+*logic related to fetching data from database.
+
+WRITE : 'hahaha'.
+
+end-of-SELECTION.
+
+* logic related to summrizing data after db work is complete
