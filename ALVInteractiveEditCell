@@ -1,0 +1,174 @@
+REPORT ZTEST_1284_5.
+
+TABLES: EKKO.
+TYPE-POOLS: SLIS. "ALV Declarations
+*Data Declaration
+*----------------
+TYPES: BEGIN OF T_EKKO,
+EBELN TYPE EKPO-EBELN,
+EBELP TYPE EKPO-EBELP,
+STATU TYPE EKPO-STATU,
+AEDAT TYPE EKPO-AEDAT,
+MATNR TYPE EKPO-MATNR,
+MENGE TYPE EKPO-MENGE,
+MEINS TYPE EKPO-MEINS,
+NETPR TYPE EKPO-NETPR,
+PEINH TYPE EKPO-PEINH,
+*FIELD_STYLE TYPE LVC_T_STYL, "FOR DISABLE
+FC_CAT TYPE LVC_T_FCAT,
+END OF T_EKKO.
+
+DATA: IT_EKKO TYPE STANDARD TABLE OF T_EKKO INITIAL SIZE 0,
+WA_EKKO TYPE T_EKKO.
+*ALV data declarations
+DATA: FIELDCATALOG TYPE SLIS_T_FIELDCAT_ALV WITH HEADER LINE.
+DATA: IT_FIELDCAT TYPE LVC_T_FCAT, "slis_t_fieldcat_alv WITH HEADER LINE,
+WA_FIELDCAT TYPE LVC_S_FCAT,
+GD_TAB_GROUP TYPE SLIS_T_SP_GROUP_ALV,
+GD_LAYOUT TYPE LVC_S_LAYO, "slis_layout_alv,
+GD_REPID LIKE SY-REPID.
+************************************************************************
+*Start-of-selection.
+
+START-OF-SELECTION.
+  PERFORM DATA_RETRIEVAL.
+  PERFORM SET_SPECIFIC_FIELD_ATTRIBUTES.
+  PERFORM BUILD_FIELDCATALOG.
+  PERFORM BUILD_LAYOUT.
+  PERFORM DISPLAY_ALV_REPORT.
+*&---------------------------------------------------------------------*
+*& Form BUILD_FIELDCATALOG
+*&---------------------------------------------------------------------*
+* Build Fieldcatalog for ALV Report
+*----------------------------------------------------------------------*
+
+FORM BUILD_FIELDCATALOG.
+  WA_FIELDCAT-FIELDNAME = 'EBELN'.
+  WA_FIELDCAT-SCRTEXT_M = 'Purchase Order'.
+  WA_FIELDCAT-COL_POS = 0.
+  WA_FIELDCAT-OUTPUTLEN = 10.
+  WA_FIELDCAT-EMPHASIZE = 'X'.
+  WA_FIELDCAT-KEY = 'X'.
+  APPEND WA_FIELDCAT TO IT_FIELDCAT.
+  CLEAR WA_FIELDCAT.
+  WA_FIELDCAT-FIELDNAME = 'EBELP'.
+  WA_FIELDCAT-SCRTEXT_M = 'PO Item'.
+  WA_FIELDCAT-COL_POS = 1.
+  APPEND WA_FIELDCAT TO IT_FIELDCAT.
+  CLEAR WA_FIELDCAT.
+  WA_FIELDCAT-FIELDNAME = 'STATU'.
+  WA_FIELDCAT-SCRTEXT_M = 'Status'.
+  WA_FIELDCAT-COL_POS = 2.
+  APPEND WA_FIELDCAT TO IT_FIELDCAT.
+  CLEAR WA_FIELDCAT.
+  WA_FIELDCAT-FIELDNAME = 'AEDAT'.
+  WA_FIELDCAT-SCRTEXT_M = 'Item change date'.
+  WA_FIELDCAT-COL_POS = 3.
+  APPEND WA_FIELDCAT TO IT_FIELDCAT.
+  CLEAR WA_FIELDCAT.
+  WA_FIELDCAT-FIELDNAME = 'MATNR'.
+  WA_FIELDCAT-SCRTEXT_M = 'Material Number'.
+  WA_FIELDCAT-COL_POS = 4.
+  APPEND WA_FIELDCAT TO IT_FIELDCAT.
+  CLEAR WA_FIELDCAT.
+  WA_FIELDCAT-FIELDNAME = 'MENGE'.
+  WA_FIELDCAT-SCRTEXT_M = 'PO quantity'.
+  WA_FIELDCAT-COL_POS = 5.
+  APPEND WA_FIELDCAT TO IT_FIELDCAT.
+  CLEAR WA_FIELDCAT.
+  WA_FIELDCAT-FIELDNAME = 'MEINS'.
+  WA_FIELDCAT-SCRTEXT_M = 'Order Unit'.
+  WA_FIELDCAT-COL_POS = 6.
+  APPEND WA_FIELDCAT TO IT_FIELDCAT.
+  CLEAR WA_FIELDCAT.
+  WA_FIELDCAT-FIELDNAME = 'NETPR'.
+  WA_FIELDCAT-SCRTEXT_M = 'Net Price'.
+*  WA_FIELDCAT-EDIT = 'X'. "sets whole column to be editable
+  WA_FIELDCAT-COL_POS = 7.
+  WA_FIELDCAT-OUTPUTLEN = 15.
+  WA_FIELDCAT-DATATYPE = 'CURR'.
+  APPEND WA_FIELDCAT TO IT_FIELDCAT.
+  CLEAR WA_FIELDCAT.
+  WA_FIELDCAT-FIELDNAME = 'PEINH'.
+  WA_FIELDCAT-SCRTEXT_M = 'Price Unit'.
+  WA_FIELDCAT-COL_POS = 8.
+  APPEND WA_FIELDCAT TO IT_FIELDCAT.
+  CLEAR WA_FIELDCAT.
+ENDFORM. " BUILD_FIELDCATALOG
+
+*&---------------------------------------------------------------------*
+*& Form BUILD_LAYOUT
+*&---------------------------------------------------------------------*
+* Build layout for ALV grid report
+*----------------------------------------------------------------------*
+FORM BUILD_LAYOUT.
+* Set layout field for field attributes(i.e. input/output)
+  GD_LAYOUT-STYLEFNAME = 'FIELD_STYLE'.
+  GD_LAYOUT-ZEBRA = 'X'.
+ENDFORM. " BUILD_LAYOUT
+*&---------------------------------------------------------------------*
+*& Form DISPLAY_ALV_REPORT
+*&---------------------------------------------------------------------*
+* Display report using ALV grid
+*----------------------------------------------------------------------*
+FORM DISPLAY_ALV_REPORT.
+  GD_REPID = SY-REPID.
+* call function 'REUSE_ALV_GRID_DISPLAY'
+  CALL FUNCTION 'REUSE_ALV_GRID_DISPLAY_LVC'
+  EXPORTING
+  I_CALLBACK_PROGRAM = GD_REPID
+* i_callback_user_command = 'USER_COMMAND'
+  IS_LAYOUT_LVC = GD_LAYOUT
+  IT_FIELDCAT_LVC = IT_FIELDCAT
+  I_SAVE = 'X'
+  TABLES
+  T_OUTTAB = IT_EKKO
+  EXCEPTIONS
+  PROGRAM_ERROR = 1
+  OTHERS = 2.
+  IF SY-SUBRC <> 0.
+* MESSAGE ID SY-MSGID TYPE SY-MSGTY NUMBER SY-MSGNO
+* WITH SY-MSGV1 SY-MSGV2 SY-MSGV3 SY-MSGV4.
+  ENDIF.
+ENDFORM. " DISPLAY_ALV_REPORT
+*&---------------------------------------------------------------------*
+*& Form DATA_RETRIEVAL
+*&---------------------------------------------------------------------*
+* Retrieve data form EKPO table and populate itab it_ekko
+*----------------------------------------------------------------------*
+FORM DATA_RETRIEVAL.
+  SELECT EBELN EBELP STATU AEDAT MATNR MENGE MEINS NETPR PEINH
+  UP TO 10 ROWS
+  FROM EKPO
+  INTO CORRESPONDING FIELDS OF TABLE IT_EKKO
+  WHERE NETPR ne 0  .
+ENDFORM. " DATA_RETRIEVAL
+*&---------------------------------------------------------------------*
+*& Form set_specific_field_attributes
+*&---------------------------------------------------------------------*
+* populate FIELD_STYLE table with specific field attributes
+*----------------------------------------------------------------------*
+FORM SET_SPECIFIC_FIELD_ATTRIBUTES .
+  DATA LS_STYLEROW TYPE LVC_S_STYL .
+  DATA LT_STYLETAB TYPE LVC_T_STYL .
+  DATA LS_STYLEROW_1 TYPE lvc_s_fcat .
+  DATA LT_STYLETAB_1 TYPE lvc_t_fcat .
+* Populate style variable (FIELD_STYLE) with style properties
+*
+* The NETPR field/column has been set to editable in the fieldcatalog...
+* The following code sets it to be disabled(display only) if 'NETPR'
+* is gt than 10.
+  LOOP AT IT_EKKO INTO WA_EKKO.
+    IF WA_EKKO-NETPR gt 1000.
+      LS_STYLEROW_1-FIELDNAME = 'NETPR'.
+*      LS_STYLEROW_1-EDIT = 'X'.
+      LS_STYLEROW_1-EDIT = 'X'.
+      APPEND LS_STYLEROW_1 TO WA_EKKO-FC_CAT.
+      MODIFY IT_EKKO FROM WA_EKKO.
+*      LS_STYLEROW-FIELDNAME = 'NETPR' .
+*      LS_STYLEROW-STYLE = CL_GUI_ALV_GRID=>MC_STYLE_HOTSPOT.
+*      APPEND LS_STYLEROW TO WA_EKKO-FIELD_STYLE.
+*      MODIFY IT_EKKO FROM WA_EKKO.
+    ENDIF.
+  ENDLOOP.
+ENDFORM. " set_specific_field_attributes
